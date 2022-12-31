@@ -14,9 +14,6 @@ fn test_paragraph_from_str() {
 
 #[test]
 fn test_paragraph_display() {
-    // let s = "Define $A$ as $B$
-    // ";
-    // let result = parse_line().parse(s).map(|r| r.0);
     let l1 = Line {
         words: vec![
             Word::Text("Define".to_string()),

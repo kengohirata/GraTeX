@@ -1,8 +1,8 @@
 use std::{fmt, io, str::FromStr};
 
 use combine::{
-    between, eof, error::StringStreamError, many, many1, none_of, optional, parser::char::newline,
-    satisfy, sep_end_by, stream::position, token, ParseError, Parser, Stream, sep_by,
+    between, error::StringStreamError, many, many1, none_of, parser::char::newline, satisfy,
+    sep_by, sep_end_by, stream::position, token, ParseError, Parser, Stream,
 };
 
 #[cfg(test)]

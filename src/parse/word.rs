@@ -1,4 +1,19 @@
 use super::*;
+use combine::{
+    attempt, between, choice, many, many1, none_of, not_followed_by, parser, parser::char::newline,
+    parser::char::string, satisfy, sep_by, sep_end_by, skip_many, token, ParseError, Parser,
+    Stream,
+};
+
+parser! {
+    pub fn parse_lines[Input]()(Input) -> Vec<Line>
+    where [
+        Input: Stream<Token = char>,
+        Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+    ]{
+        sep_by(parse_line(), newline())
+    }
+}
 
 parser! {
     pub fn parse_line[Input]()(Input) -> Line
@@ -33,17 +48,29 @@ parser! {
     }
 }
 
-parser! {
-    fn parse_text[Input]()(Input) -> Word
-    where [
-        Input: Stream<Token = char>,
-        Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
-    ]{
-        many1(none_of(['$', '\t', '\n', ' ', '\\'].iter().cloned())).map(Word::Text)
-    }
+fn parse_text<Input>() -> impl Parser<Input, Output = Word>
+where
+    Input: Stream<Token = char>,
+    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+{
+    many1(none_of(['$', '\t', '\n', ' ', '\\', '}'].iter().cloned())).map(Word::Text)
 }
 
-pub fn parse_math_inline<Input>() -> impl Parser<Input, Output = Word>
+// [FIXME] want to call parse_lines inside parse_emph,
+// but it reads more than one words, which has incompatible
+// return type.
+//
+// parser! {
+//     fn parse_emph[Input]()(Input) -> Word
+//     where [
+//         Input: Stream<Token = char>,
+//         Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+//     ]{
+//         attempt(string("emph{")).with(parse_lines())
+//     }
+// }
+
+fn parse_math_inline<Input>() -> impl Parser<Input, Output = Word>
 where
     Input: Stream<Token = char>,
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
@@ -61,7 +88,7 @@ where
     })
 }
 
-pub fn parse_math_display<Input>() -> impl Parser<Input, Output = Word>
+fn parse_math_display<Input>() -> impl Parser<Input, Output = Word>
 where
     Input: Stream<Token = char>,
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,

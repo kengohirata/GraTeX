@@ -1,13 +1,7 @@
+use combine::{error::StringStreamError, stream::position, Parser};
 use std::{fmt, io, str::FromStr};
 
-use combine::{
-    attempt, between, choice, error::StringStreamError, many, many1, none_of, not_followed_by,
-    parser, parser::char::newline, parser::char::string, satisfy, sep_by, sep_end_by, skip_many,
-    stream::position, token, ParseError, Parser, Stream,
-};
-
-use word::parse_line;
-
+use self::word::parse_lines;
 #[cfg(test)]
 mod test;
 mod word;
@@ -54,7 +48,7 @@ impl FromStr for Paragraph {
     type Err = Error<StringStreamError>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        sep_by(parse_line(), newline())
+        parse_lines()
             .parse(position::Stream::new(s))
             .map_err(Error::Parse)
             .map(|lines| Paragraph { lines: lines.0 })

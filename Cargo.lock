@@ -3,19 +3,6 @@
 version = 3
 
 [[package]]
-name = "GraTeX"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "combine",
- "fern",
- "log",
- "structopt",
- "structopt-flags",
-]
-
-[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -256,6 +243,19 @@ name = "glob"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
+
+[[package]]
+name = "gratex"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "combine",
+ "fern",
+ "log",
+ "structopt",
+ "structopt-flags",
+]
 
 [[package]]
 name = "heck"

@@ -69,6 +69,7 @@ pub enum Word {
     Text(String),
     MathInline(String),
     MathDisplay,
+    Command(Command),
 }
 
 impl fmt::Display for Word {
@@ -77,6 +78,22 @@ impl fmt::Display for Word {
             Word::Text(s) => write!(f, "{}", s),
             Word::MathInline(s) => write!(f, "{}", s),
             Word::MathDisplay => Ok(()),
+            Word::Command(c) => write!(f, "\n%--- {} ---\n", c),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Command {
+    Begin(String),
+    End(String),
+}
+
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Command::Begin(s) => write!(f, "begin: {}", s),
+            Command::End(s) => write!(f, "end: {}", s),
         }
     }
 }

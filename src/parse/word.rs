@@ -39,11 +39,10 @@ parser! {
         Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
     ]{
         choice((
+            parse_math_display(),
+            parse_command(),
             parse_math_inline(),
             parse_text(),
-            token('\\').with(
-                parse_math_display(),
-            ),
         ))
     }
 }
@@ -53,7 +52,8 @@ where
     Input: Stream<Token = char>,
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
-    many1(none_of(['$', '\t', '\n', ' ', '\\', '}'].iter().cloned())).map(Word::Text)
+    // [WIP] should not read \ or }
+    many1(none_of(['$', '\t', '\n', ' '].iter().cloned())).map(Word::Text)
 }
 
 // [FIXME] want to call parse_lines inside parse_emph,
@@ -93,13 +93,34 @@ where
     Input: Stream<Token = char>,
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
-    token::<Input>('[')
+    attempt(string("\\["))
         .with(skip_many(
             none_of(['\\'].iter().cloned())
                 .or(attempt(token('\\').skip(not_followed_by(token(']'))))),
         ))
         .skip(string("\\]"))
         .map(|_| Word::MathDisplay)
+}
+
+fn parse_command<Input>() -> impl Parser<Input, Output = Word>
+where
+    Input: Stream<Token = char>,
+    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+{
+    choice((
+        between(
+            attempt(string("\\begin{")),
+            token('}'),
+            many1(none_of(['}'].iter().cloned())),
+        )
+        .map(|s| Word::Command(Command::Begin(s))),
+        between(
+            attempt(string("\\end{")),
+            token('}'),
+            many1(none_of(['}'].iter().cloned())),
+        )
+        .map(|s| Word::Command(Command::End(s))),
+    ))
 }
 
 fn make_upper_substitute(s: String) -> String {

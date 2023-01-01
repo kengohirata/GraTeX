@@ -3,7 +3,7 @@ use super::*;
 
 #[test]
 fn test_paragraph_from_str() {
-    let s = "let $A$\n be $B$.   \n and let $C$ be a 2-category.  \n \n\n  aa \\[ y \\]  \n  ";
+    let s = "let $A$\n be $B$.   \n and let $C$ be a 2-category.  \n \n\n  aa \\[ y \\] \\begin{align}  \n \\end{align}  ";
     let p = Paragraph::from_str(s);
     // dbg!(&p);
     assert!(p.is_ok());

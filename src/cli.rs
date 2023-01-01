@@ -15,6 +15,6 @@ pub struct Opts {
 
 #[derive(StructOpt, Debug)]
 pub enum SubCommand {
-    Build(build::Opts),
+    Convert(convert::Opts),
     Completion(completion::Opts),
 }

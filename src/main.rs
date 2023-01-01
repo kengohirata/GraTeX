@@ -1,7 +1,6 @@
 /// 
 use log::Level;
 use structopt_flags::LogLevel;
-use std::io;
 use GraTeX::cli;
 use structopt::StructOpt;
 
@@ -30,7 +29,7 @@ fn main () {
     }
 
     let exit_code = match opts.sub_command {
-        cli::SubCommand::Build(sub_opts) => cli::subcommand::build::run(sub_opts),
+        cli::SubCommand::Convert(sub_opts) => cli::subcommand::convert::run(sub_opts),
         cli::SubCommand::Completion(sub_opts) => cli::subcommand::completion::run(sub_opts),
     };
 

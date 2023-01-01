@@ -45,9 +45,9 @@ fn test_line() {
     let line = Line {
         words: vec![
             Word::Text("Define".to_string()),
-            Word::Math("A".to_string()),
+            Word::Math("AXX".to_string()),
             Word::Text("as".to_string()),
-            Word::Math("B".to_string()),
+            Word::Math("BXX".to_string()),
         ],
         comments: None,
     };
@@ -57,7 +57,7 @@ fn test_line() {
 #[test]
 fn test_math() {
     let result = parse_math().parse("$A$-alg");
-    let math = Word::Math("A-alg".to_string());
+    let math = Word::Math("AXX-alg".to_string());
     print!("{}", math);
     assert_eq!(result, Ok((math, "")))
 }
@@ -79,4 +79,19 @@ fn test_space() {
      ";
     let result = parse_pure_spaces().parse(s);
     assert!(result.is_ok())
+}
+
+#[test]
+fn test_make_upper_substitute() {
+    let s = "abcd".to_string();
+    let subst = make_upper_substitute(s);
+    assert_eq!(subst, "ABC".to_string()); 
+
+    let s = "ab".to_string();
+    let subst = make_upper_substitute(s);
+    assert_eq!(subst, "ABX".to_string()); 
+
+    let s = "--a--".to_string();
+    let subst = make_upper_substitute(s);
+    assert_eq!(subst, "AXX".to_string()); 
 }

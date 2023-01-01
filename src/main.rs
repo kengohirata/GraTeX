@@ -1,7 +1,7 @@
 /// 
 use log::Level;
 use structopt_flags::LogLevel;
-use GraTeX::cli;
+use gratex::cli;
 use structopt::StructOpt;
 
 fn setup_logger(level: Level) -> Result<(), fern::InitError> {

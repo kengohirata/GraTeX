@@ -1,8 +1,8 @@
 use super::*;
 use combine::{
     attempt, between, choice, many, many1, none_of, not_followed_by, parser, parser::char::newline,
-    parser::char::string, satisfy, sep_by, sep_end_by, skip_many, token, ParseError, Parser,
-    Stream,
+    parser::char::string, satisfy, sep_by, sep_end_by, skip_many, token, unexpected_any, value,
+    ParseError, Parser, Stream,
 };
 
 parser! {
@@ -107,20 +107,29 @@ where
     Input: Stream<Token = char>,
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
-    choice((
-        between(
-            attempt(string("\\begin{")),
-            token('}'),
-            many1(none_of(['}'].iter().cloned())),
-        )
-        .map(|s| Word::Command(Command::Begin(s))),
-        between(
-            attempt(string("\\end{")),
-            token('}'),
-            many1(none_of(['}'].iter().cloned())),
-        )
-        .map(|s| Word::Command(Command::End(s))),
-    ))
+    (parse_command_name(), many1(none_of(['}'].iter().cloned())))
+        // [FIXME] this parses first '}'
+        .skip(token('}'))
+        .then(|(name, arg)| match Command::from_strings(name, arg) {
+            Some(c) => value(Word::Command(c)).left(),
+            None => unexpected_any("unreachable in parse_command;").right(),
+        })
+
+    // .map(|(name, arg)| match Command::from_strings(name, arg) {
+    //     Some(_) => todo!(),
+    //     None => ,
+    // })
+}
+
+fn parse_command_name<Input>() -> impl Parser<Input, Output = String>
+where
+    Input: Stream<Token = char>,
+    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+{
+    attempt(token('\\').with(choice(Command::KEYWORDS.map(|s| attempt(string(&s))))))
+        .skip(parse_pure_spaces())
+        .skip(token('{'))
+        .map(|s| s.to_string())
 }
 
 fn make_upper_substitute(s: String) -> String {

@@ -36,6 +36,7 @@ impl fmt::Display for Paragraph {
                 write!(f, "\n\n")?;
             } else {
                 for word in line.words.iter() {
+                    // [FIXME] may produce extra spaces
                     write!(f, "{} ", word)?;
                 }
             }
@@ -64,7 +65,7 @@ pub struct Line {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Comments(String);
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Word {
     Text(String),
     MathInline(String),
@@ -78,22 +79,48 @@ impl fmt::Display for Word {
             Word::Text(s) => write!(f, "{}", s),
             Word::MathInline(s) => write!(f, "{}", s),
             Word::MathDisplay => Ok(()),
-            Word::Command(c) => write!(f, "\n%--- {} ---\n", c),
+            Word::Command(c) => write!(f, "{}", c),
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Command {
     Begin(String),
     End(String),
+    Section(u8, String),
+    Ignore,
 }
 
 impl fmt::Display for Command {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Command::Begin(s) => write!(f, "begin: {}", s),
-            Command::End(s) => write!(f, "end: {}", s),
+            Command::Begin(s) => write!(f, "\n% --- begin: {} ---\n", s),
+            Command::End(s) => write!(f, "\n% --- end: {} ---\n", s),
+            Command::Section(n, s) => {
+                for _ in 0..*n {
+                    write!(f, "#")?
+                }
+                writeln!(f, " {}", s)
+            }
+            Command::Ignore => Ok(()),
         }
+    }
+}
+
+impl Command {
+    pub const KEYWORDS: [&str; 5] = ["begin", "end", "section", "subsection",  "label"];
+
+    pub fn from_strings(name: String, arg: String) -> Option<Command> {
+        let c = match &*name {
+            "begin" => Command::Begin(arg),
+            "end" => Command::End(arg),
+            "section" => Command::Section(1, arg),
+            "subsection" => Command::Section(2, arg),
+            "todo" => Command::Ignore,
+            "label" => Command::Ignore,
+            _ => return None,
+        };
+        Some(c)
     }
 }

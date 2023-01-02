@@ -24,9 +24,9 @@ pub fn run(opts: Opts) -> i32 {
         }
         Ok((paragraph, Some(out_path_buf))) => {
             let out_path = out_path_buf.as_path();
-            match std::fs::File::create(out_path) {
+            match std::fs::File::options().append(true).open(out_path) {
                 Ok(mut file) => {
-                    file.write_fmt(format_args!("{}", paragraph)).expect("failed to write;");
+                    write!(file, "{}", paragraph).expect("failed to write;");
                     0
                 }
                 Err(e) => {

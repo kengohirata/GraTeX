@@ -8,7 +8,7 @@ fn test_paragraph_from_str() {
     // dbg!(&p);
     assert!(p.is_ok());
     match p {
-        Ok(p) => println!("{}", p),
+        Ok(p) => println!("{p}"),
         Err(_) => unreachable!(),
     }
 
@@ -17,7 +17,7 @@ fn test_paragraph_from_str() {
     // dbg!(&p);
     assert!(p.is_ok());
     match p {
-        Ok(p) => println!("{}", p),
+        Ok(p) => println!("{p}"),
         Err(_) => unreachable!(),
     }
 }

@@ -1,9 +1,9 @@
 use super::command::parse_command;
 use super::*;
 use combine::{
-    attempt, between, choice, many, many1, none_of, not_followed_by, parser, parser::char::newline,
-    parser::char::string, satisfy, sep_by, sep_end_by, skip_many, token, ParseError, Parser,
-    Stream,
+    attempt, between, choice, many, many1, none_of, not_followed_by, optional, parser,
+    parser::char::newline, parser::char::string, satisfy, sep_by, sep_end_by, skip_many, token,
+    ParseError, Parser, Stream,
 };
 
 parser! {
@@ -25,10 +25,11 @@ parser! {
     (
         parse_pure_spaces(),
         sep_end_by(parse_word(), parse_pure_spaces()),
+        optional(parse_comments())
     )
-        .map(|(_, words)| Line {
+        .map(|(_, words, comments)| Line {
             words,
-            comments: None,
+            comments,
         })
     }
 }
@@ -40,13 +41,23 @@ parser! {
         Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
     ]{
         choice((
-            between(token('{'), token('}'), parse_lines()).map(|lines| Word::Lines(Box::new(Paragraph{lines}))),
+            between(token('{'), token('}'), parse_lines()).map(|lines| Word::Lines(Paragraph{lines})),
             parse_math_display(),
-            parse_command().map(|c| Word::Command(c)),
+            parse_command().map(Word::Command),
             parse_math_inline(),
             parse_text(),
         ))
     }
+}
+
+fn parse_comments<Input>() -> impl Parser<Input, Output = Comments>
+where
+    Input: Stream<Token = char>,
+    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+{
+    token('%')
+        .with(many(satisfy(|ch| ch != '\n')))
+        .map(Comments)
 }
 
 fn parse_text<Input>() -> impl Parser<Input, Output = Word>
@@ -54,8 +65,8 @@ where
     Input: Stream<Token = char>,
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
-    // [WIP] should not read \ or }
-    many1(none_of(['$', '\t', '\n', ' ', '{', '}'].iter().cloned())).map(Word::Text)
+    // [WIP] should not read \
+    many1(none_of(['$', '\t', '\n', ' ', '{', '}', '%'].iter().cloned())).map(Word::Text)
 }
 
 fn parse_math_inline<Input>() -> impl Parser<Input, Output = Word>
@@ -68,7 +79,7 @@ where
         token('$'),
         many1::<String, _, _>(none_of(['$'].iter().cloned())),
     )
-    .and(many(none_of([' ', '\n', '\t'])))
+    .and(many(none_of([' ', '\n', '\t', '}'])))
     .map(|(s, t): (String, String)| {
         let mut s_alpha = make_upper_substitute(s);
         s_alpha.push_str(&t);

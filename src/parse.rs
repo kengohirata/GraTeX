@@ -19,8 +19,8 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            Error::Io(ref err) => write!(f, "{}", err),
-            Error::Parse(ref err) => write!(f, "{}", err),
+            Error::Io(ref err) => write!(f, "{err}"),
+            Error::Parse(ref err) => write!(f, "{err}"),
         }
     }
 }
@@ -38,7 +38,7 @@ impl fmt::Display for Paragraph {
             } else {
                 for word in line.words.iter() {
                     // [FIXME] may produce extra spaces
-                    write!(f, "{}", word)?;
+                    write!(f, "{word}")?;
                 }
             }
         }
@@ -63,7 +63,7 @@ pub struct Line {
     pub comments: Option<Comments>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Comments(String);
 
 #[derive(Debug, PartialEq, Eq)]
@@ -72,17 +72,29 @@ pub enum Word {
     MathInline(String),
     MathDisplay,
     Command(command::Command),
-    Lines(Box<Paragraph>),
+    Lines(Paragraph),
 }
 
 impl fmt::Display for Word {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Word::Text(s) => write!(f, "{} ", s),
-            Word::MathInline(s) => write!(f, "{} ", s),
+            Word::Text(s) => write!(f, "{s} "),
+            Word::MathInline(s) => write!(f, "{s} "),
             Word::MathDisplay => Ok(()),
-            Word::Command(c) => write!(f, "{}", c),
+            Word::Command(c) => write!(f, "{c}"),
             Word::Lines(p) => write!(f, "{p}"),
+        }
+    }
+}
+
+impl Word {
+    pub fn is_empty_word (&self) -> bool {
+        match self {
+            Word::Text(s) => s.is_empty(),
+            Word::MathInline(s) => s.is_empty(),
+            Word::MathDisplay => false,
+            Word::Command(_) => false,
+            Word::Lines(_) => false,
         }
     }
 }

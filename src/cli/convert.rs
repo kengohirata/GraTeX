@@ -30,7 +30,7 @@ pub enum InputType {
 pub fn run(opts: Opts) -> i32 {
     match run_result(opts) {
         Ok((paragraph, None)) => {
-            println!("{}", paragraph);
+            println!("{paragraph}");
             0
         }
         Ok((paragraph, Some(out_path_buf))) => {
@@ -41,7 +41,7 @@ pub fn run(opts: Opts) -> i32 {
                 .open(out_path)
             {
                 Ok(mut file) => {
-                    write!(file, "{}", paragraph).expect("failed to write;");
+                    write!(file, "{paragraph}").expect("failed to write;");
                     0
                 }
                 Err(e) => {
@@ -51,7 +51,7 @@ pub fn run(opts: Opts) -> i32 {
             }
         }
         Err(err) => {
-            eprintln!("failed to convert; {}", err);
+            eprintln!("failed to convert; {err}");
             1
         }
     }
@@ -69,7 +69,8 @@ fn run_result(opts: Opts) -> Result<(Paragraph, Option<PathBuf>)> {
             buffer
         }
     };
-    parse::Paragraph::from_str(&raw_code)
-        .map(|p| (p, opts.output))
-        .map_err(|err| anyhow::anyhow!("failed to parse; {}", err))
+    let mut paragraph = parse::Paragraph::from_str(&raw_code)
+        .map_err(|err| anyhow::anyhow!("failed to parse; {}", err))?;
+    paragraph.arrange();
+    Ok((paragraph,opts.output))
 }

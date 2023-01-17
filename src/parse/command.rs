@@ -16,7 +16,10 @@ pub enum Command {
     },
     WithText {
         name: TextInputs,
-        contents: Box<Vec<Line>>,
+        contents: Vec<Line>,
+    },
+    NoArgs {
+        name: NoArgs,
     },
 }
 
@@ -26,11 +29,11 @@ impl fmt::Display for Command {
             Command::WithString {
                 name: StringInputs::Begin,
                 contents,
-            } => write!(f, "\n% ---------- \\begin: {} ----------\n", contents),
+            } => write!(f, "\n% ---------- \\begin: {contents} ----------\n"),
             Command::WithString {
                 name: StringInputs::End,
                 contents,
-            } => write!(f, "\n% ---------- \\end: {} ----------\n", contents),
+            } => write!(f, "\n% ---------- \\end: {contents} ----------\n"),
             Command::WithString {
                 name: StringInputs::Section(n),
                 contents,
@@ -38,7 +41,7 @@ impl fmt::Display for Command {
                 for _ in 0..*n {
                     write!(f, "#")?
                 }
-                writeln!(f, " {}", contents)
+                writeln!(f, " {contents}")
             }
             Command::WithString {
                 name: StringInputs::Label,
@@ -48,8 +51,12 @@ impl fmt::Display for Command {
                 name: StringInputs::Cite,
                 contents,
             } => write!(f, "[{}]", make_upper_substitute(contents.to_owned())),
+            Command::WithString {
+                name: StringInputs::Ref,
+                contents,
+            } => write!(f, "{} 7", make_ref_name(contents.to_owned())),
             Command::WithText {
-                name: TextInputs::Emph,
+                name: TextInputs::Font,
                 contents,
             } => {
                 for line in contents.iter() {
@@ -58,12 +65,13 @@ impl fmt::Display for Command {
                     } else {
                         for word in line.words.iter() {
                             // [FIXME] may produce extra spaces
-                            write!(f, "{}", word)?;
+                            write!(f, "{word}")?;
                         }
                     }
                 }
                 Ok(())
             }
+            Command::NoArgs { name: NoArgs::Item } => write!(f, "\n- "),
         }
     }
 }
@@ -72,6 +80,7 @@ impl fmt::Display for Command {
 enum CommandNames {
     StringInputCommands(StringInputs),
     TextInputCommands(TextInputs),
+    NoArgCommands(NoArgs),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -81,11 +90,17 @@ pub enum StringInputs {
     Section(u8),
     Label,
     Cite,
+    Ref,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TextInputs {
-    Emph,
+    Font,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum NoArgs {
+    Item,
 }
 
 impl std::str::FromStr for CommandNames {
@@ -100,7 +115,10 @@ impl std::str::FromStr for CommandNames {
             "subsection" => StringInputCommands(StringInputs::Section(2)),
             "label" => StringInputCommands(StringInputs::Label),
             "cite" => StringInputCommands(StringInputs::Cite),
-            "emph" => TextInputCommands(TextInputs::Emph),
+            "ref" | "cref" | "Cref" => StringInputCommands(StringInputs::Ref),
+            "emph" => TextInputCommands(TextInputs::Font),
+            c if c.strip_prefix("text").is_some() => TextInputCommands(TextInputs::Font),
+            "item" => NoArgCommands(NoArgs::Item),
             _ => return Err(StringStreamError::UnexpectedParse),
         };
         Ok(ok)
@@ -108,7 +126,7 @@ impl std::str::FromStr for CommandNames {
 }
 
 impl CommandNames {
-    pub const KEYWORDS: [&str; 7] = [
+    pub const KEYWORDS: [&str; 14] = [
         "begin",
         "end",
         "section",
@@ -116,7 +134,24 @@ impl CommandNames {
         "label",
         "emph",
         "cite",
+        "ref",
+        "cref",
+        "Cref",
+        "item",
+        "textrm",
+        "textbf",
+        "textit",
     ];
+
+    fn has_args(&self) -> bool {
+        !matches!(self, CommandNames::NoArgCommands(_))
+    }
+    fn no_arg(self) -> NoArgs {
+        match self {
+            Self::NoArgCommands(name) => name,
+            _ => panic!("Panic at no_args. Use this function in asserted place."),
+        }
+    }
 }
 
 pub fn parse_command<Input>() -> impl Parser<Input, Output = Command>
@@ -125,21 +160,30 @@ where
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
     parse_command_name().then(|name| {
-        between(
-            token('{'),
-            token('}'),
-            match name {
-                CommandNames::StringInputCommands(name) => many1(satisfy(|ch| ch != '}'))
-                    .map(move |s| Command::WithString { name, contents: s })
-                    .left(),
-                CommandNames::TextInputCommands(name) => parse_lines()
-                    .map(move |ls| Command::WithText {
-                        name,
-                        contents: Box::new(ls),
-                    })
-                    .right(),
-            },
-        )
+        if name.has_args() {
+            between(
+                token('{'),
+                token('}'),
+                match name {
+                    CommandNames::StringInputCommands(name) => many1(satisfy(|ch| ch != '}'))
+                        .map(move |s| Command::WithString { name, contents: s })
+                        .left(),
+                    CommandNames::TextInputCommands(name) => parse_lines()
+                        .map(move |contents| Command::WithText { name, contents })
+                        .right(),
+                    CommandNames::NoArgCommands(_) => {
+                        unreachable!("Unreachable in parse_command_name")
+                    }
+                },
+            )
+            .left()
+        } else {
+            value(name)
+                .map(|name| Command::NoArgs {
+                    name: name.no_arg(),
+                })
+                .right()
+        }
     })
 }
 
@@ -152,10 +196,34 @@ where
     attempt(between(
         (token('\\'), parse_pure_spaces()),
         parse_pure_spaces(),
-        choice(CommandNames::KEYWORDS.map(|s| attempt(string(&s)))),
+        choice(CommandNames::KEYWORDS.map(|s| attempt(string(s)))),
     ))
     .then(|s| match CommandNames::from_str(s) {
         Ok(cn) => value(cn).left(),
         Err(_) => unexpected_any("Failed to match a string to a known name.").right(),
     })
+}
+
+fn make_ref_name(s: String) -> String {
+    let mut s = s
+        .chars()
+        .filter(|c| c.is_alphabetic())
+        .collect::<String>()
+        .to_lowercase();
+    s.truncate(3);
+    let new_name = match &*s {
+        "sec" => "Section",
+        "sub" => "Section",
+        "thm" | "the" => "Theorem",
+        "lem" => "Lemma",
+        "pro" | "prp" => "Proposition",
+        "cor" => "Corollary",
+        "def" => "Definition",
+        c if c.strip_prefix("eg").is_some() => "Example",
+        c if c.strip_prefix("ex").is_some() => "Example",
+        c if c.strip_prefix("ax").is_some() => "Axiom",
+        "rem" | "rmk" => "Remark",
+        _ => "Theorem",
+    };
+    new_name.to_owned()
 }

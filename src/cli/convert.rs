@@ -1,4 +1,4 @@
-use crate::parse::{self, Paragraph};
+use super::super::parse::{self, Paragraph};
 use anyhow::Result;
 use arboard::Clipboard;
 use std::fs::read_to_string;

@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     name: Build all
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +41,7 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: rustup target add ${{ matrix.target }}
+      # - run: rustup target add ${{ matrix.target }}
       # - name: Set env
       #   run: |
       #     echo ${{  }} >> TARGET_CC \

@@ -27,4 +27,5 @@ impl Word {
 fn arrange_text_string(s: &mut String) {
     *s = s.replace("\\@", "");
     *s = s.replace("\\\'", "");
+    *s = s.replace("\\\\", "");
 }

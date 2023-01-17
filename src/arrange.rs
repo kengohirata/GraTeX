@@ -11,6 +11,7 @@ impl Line {
     pub fn arrange(&mut self) {
         let Line { words, .. } = self;
         words.iter_mut().for_each(|w| w.arrange());
+        words.retain(|w| !w.is_empty_word());
     }
 }
 
@@ -26,5 +27,4 @@ impl Word {
 fn arrange_text_string(s: &mut String) {
     *s = s.replace("\\@", "");
     *s = s.replace("\\\'", "");
-    *s = s.replace("\\\\", "");
 }

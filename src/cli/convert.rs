@@ -11,18 +11,24 @@ use structopt::StructOpt;
 pub struct Opts {
     #[structopt(subcommand)]
     input: InputType,
+
+    /// Output file
     #[structopt(short)]
     output: Option<PathBuf>,
 }
 
 #[derive(StructOpt, Debug)]
 pub enum InputType {
+    /// input from a File
     #[structopt(name = "-f")]
     File { path: PathBuf },
+    /// input from Cli
     #[structopt(name = "-r")]
     Raw { text: String },
+    /// input from your Clipboard
     #[structopt(name = "-c")]
     Clipboard,
+    /// input from StdIO
     #[structopt(name = "-s")]
     StdIO,
 }

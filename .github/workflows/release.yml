@@ -1,27 +1,119 @@
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - "v*"
 
 jobs:
-  release:
-    name: release ${{ matrix.target }}
+  build:
+    name: Build all
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - x86_64-pc-windows-gnu
+          - x86_64-apple-darwin
         include:
-          - target: x86_64-pc-windows-gnu
-            archive: zip
           - target: x86_64-unknown-linux-musl
-            archive: tar.gz tar.xz tar.zst
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-gnu
+            os: ubuntu-latest
           - target: x86_64-apple-darwin
-            archive: zip
+            os: macos-latest
     steps:
-      - uses: actions/checkout@master
-      - name: Compile and release
-        uses: rust-build/rust-build.action@v1.4.0
+      - name: Checkout HEAD
+        uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          # terget: ${{ matrix.target }}
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - run: rustup target add ${{ matrix.target }}
+      # - name: Set env
+      #   run: |
+      #     echo ${{  }} >> TARGET_CC \
+      #     TARGET_AR=arm-linux-gnueabihf-gcc-ar
+
+      - name: Compile
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target=${{ matrix.target }}
+
+      - name: Compress release files
+        run: |
+          zip --junk-paths gratex-${{ matrix.target }} target/${{ matrix.target }}/release/gratex{,.exe}
+      - uses: actions/upload-artifact@v1
+        with:
+          name: build-${{ matrix.target }}
+          path: gratex-${{ matrix.target }}.zip
+
+  create-release:
+    name: Create Github Release
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create a GitHub release
+        id: create-release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          RUSTTARGET: ${{ matrix.target }}
-          ARCHIVE_TYPES: ${{ matrix.archive }}
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: true
+      - run: |
+          echo '${{ steps.create-release.outputs.upload_url }}' > release_upload_url.txt
+      - uses: actions/upload-artifact@v1
+        with:
+          name: create-release
+          path: release_upload_url.txt
+
+  upload-assets:
+    name: Create Github Release
+    needs:
+      - create-release
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - x86_64-pc-windows-gnu
+          - x86_64-apple-darwin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch meta artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: create-release
+      - name: Extract an upload URL
+        id: upload-url
+        run: |
+          echo "::set-output name=url::$(cat create-release/release_upload_url.txt)"
+      - name: Download actual artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: build-${{ matrix.target }}
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.upload-url.outputs.url }}
+          asset_name: build-${{ matrix.target }}.zip
+          asset_path: build-${{ matrix.target }}/gratex-${{ matrix.target }}.zip
+          asset_content_type: application/zip

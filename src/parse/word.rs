@@ -1,8 +1,9 @@
+use super::command::parse_command;
 use super::*;
 use combine::{
     attempt, between, choice, many, many1, none_of, not_followed_by, parser, parser::char::newline,
-    parser::char::string, satisfy, sep_by, sep_end_by, skip_many, token, unexpected_any, value,
-    ParseError, Parser, Stream,
+    parser::char::string, satisfy, sep_by, sep_end_by, skip_many, token, ParseError, Parser,
+    Stream,
 };
 
 parser! {
@@ -39,8 +40,9 @@ parser! {
         Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
     ]{
         choice((
+            between(token('{'), token('}'), parse_lines()).map(|lines| Word::Lines(Box::new(Paragraph{lines}))),
             parse_math_display(),
-            parse_command(),
+            parse_command().map(|c| Word::Command(c)),
             parse_math_inline(),
             parse_text(),
         ))
@@ -53,22 +55,8 @@ where
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
     // [WIP] should not read \ or }
-    many1(none_of(['$', '\t', '\n', ' '].iter().cloned())).map(Word::Text)
+    many1(none_of(['$', '\t', '\n', ' ', '{', '}'].iter().cloned())).map(Word::Text)
 }
-
-// [FIXME] want to call parse_lines inside parse_emph,
-// but it reads more than one words, which has incompatible
-// return type.
-//
-// parser! {
-//     fn parse_emph[Input]()(Input) -> Word
-//     where [
-//         Input: Stream<Token = char>,
-//         Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
-//     ]{
-//         attempt(string("emph{")).with(parse_lines())
-//     }
-// }
 
 fn parse_math_inline<Input>() -> impl Parser<Input, Output = Word>
 where
@@ -102,44 +90,14 @@ where
         .map(|_| Word::MathDisplay)
 }
 
-fn parse_command<Input>() -> impl Parser<Input, Output = Word>
-where
-    Input: Stream<Token = char>,
-    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
-{
-    (parse_command_name(), many1(none_of(['}'].iter().cloned())))
-        // [FIXME] this parses first '}'
-        .skip(token('}'))
-        .then(|(name, arg)| match Command::from_strings(name, arg) {
-            Some(c) => value(Word::Command(c)).left(),
-            None => unexpected_any("unreachable in parse_command;").right(),
-        })
-
-    // .map(|(name, arg)| match Command::from_strings(name, arg) {
-    //     Some(_) => todo!(),
-    //     None => ,
-    // })
-}
-
-fn parse_command_name<Input>() -> impl Parser<Input, Output = String>
-where
-    Input: Stream<Token = char>,
-    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
-{
-    attempt(token('\\').with(choice(Command::KEYWORDS.map(|s| attempt(string(&s))))))
-        .skip(parse_pure_spaces())
-        .skip(token('{'))
-        .map(|s| s.to_string())
-}
-
-fn make_upper_substitute(s: String) -> String {
+pub fn make_upper_substitute(s: String) -> String {
     let mut s = take_alph_and_to_upper(s);
-    if s.len() < 3 {
-        for _ in 0..3 - s.len() {
+    if s.len() < 2 {
+        for _ in 0..2 - s.len() {
             s.push('X');
         }
     } else {
-        s.truncate(3);
+        s.truncate(2);
     }
     s
 }
@@ -151,7 +109,7 @@ fn take_alph_and_to_upper(s: String) -> String {
         .to_uppercase()
 }
 
-fn parse_pure_spaces<Input>() -> impl Parser<Input, Output = ()>
+pub fn parse_pure_spaces<Input>() -> impl Parser<Input, Output = ()>
 where
     Input: Stream<Token = char>,
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,

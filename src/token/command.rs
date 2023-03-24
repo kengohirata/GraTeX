@@ -126,9 +126,9 @@ impl std::str::FromStr for CommandNames {
 }
 
 impl CommandNames {
-    pub const KEYWORDS: [&str; 14] = [
-        "begin",
-        "end",
+    pub const KEYWORDS: [&str; 12] = [
+        // "begin",
+        // "end",
         "section",
         "subsection",
         "label",

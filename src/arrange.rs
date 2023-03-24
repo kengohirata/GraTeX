@@ -1,17 +1,9 @@
-use super::parse::{Line, Paragraph, Word};
+use super::token::{Document, Word};
 
-impl Paragraph {
+impl Document {
     pub fn arrange(&mut self) {
-        let Paragraph { lines } = self;
-        lines.iter_mut().for_each(|l| l.arrange())
-    }
-}
-
-impl Line {
-    pub fn arrange(&mut self) {
-        let Line { words, .. } = self;
-        words.iter_mut().for_each(|w| w.arrange());
-        words.retain(|w| !w.is_empty_word());
+        let Document { words } = self;
+        words.iter_mut().for_each(|l| l.arrange())
     }
 }
 

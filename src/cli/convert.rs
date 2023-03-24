@@ -1,4 +1,4 @@
-use super::super::parse::{self, Paragraph};
+use super::super::token::{self, Document};
 use anyhow::Result;
 use arboard::Clipboard;
 use std::fs::read_to_string;
@@ -63,7 +63,7 @@ pub fn run(opts: Opts) -> i32 {
     }
 }
 
-fn run_result(opts: Opts) -> Result<(Paragraph, Option<PathBuf>)> {
+fn run_result(opts: Opts) -> Result<(Document, Option<PathBuf>)> {
     let raw_code = match opts.input {
         InputType::File { path } => read_to_string(&path)
             .map_err(|err| anyhow::anyhow!("failed to load {}; {}", path.to_string_lossy(), err))?,
@@ -75,7 +75,7 @@ fn run_result(opts: Opts) -> Result<(Paragraph, Option<PathBuf>)> {
             buffer
         }
     };
-    let mut paragraph = parse::Paragraph::from_str(&raw_code)
+    let mut paragraph = token::Document::from_str(&raw_code)
         .map_err(|err| anyhow::anyhow!("failed to parse; {}", err))?;
     paragraph.arrange();
     Ok((paragraph,opts.output))

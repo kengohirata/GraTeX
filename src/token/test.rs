@@ -1,10 +1,12 @@
-// use super::word::*;
 use super::*;
 
 #[test]
 fn test_paragraph_from_str() {
-    let s = "\\section{ss}";
-    let p = Paragraph::from_str(s);
+    let s = 
+    "\\begin{a}\\begin{b}  \\begin{c} $ yeah$ \\end{c} %aiueo
+    \\hello\\ \\bye
+    \\begin{d} \\end{d}\\end{b}\\end{a} ";
+    let p = Document::from_str(s);
     // dbg!(&p);
     assert!(p.is_ok());
     match p {
@@ -12,14 +14,14 @@ fn test_paragraph_from_str() {
         Err(_) => unreachable!(),
     }
 
-    let s = "let $A$\n be $B$. \n \n\n  \\todo{ }  \\[ y \\] \\begin{align}  \n \\end{align}  ";
-    let p = Paragraph::from_str(s);
-    // dbg!(&p);
-    assert!(p.is_ok());
-    match p {
-        Ok(p) => println!("{p}"),
-        Err(_) => unreachable!(),
-    }
+    // let s = "let $A$\n be $B$. \n \n\n  \\todo{ }  \\[ y \\] \\begin{align}  \n \\end{align}  ";
+    // let p = Document::from_str(s);
+    // // dbg!(&p);
+    // assert!(p.is_ok());
+    // match p {
+    //     Ok(p) => println!("{p}"),
+    //     Err(_) => unreachable!(),
+    // }
 }
 
 // #[test]

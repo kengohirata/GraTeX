@@ -5,7 +5,7 @@ fn test_paragraph_from_str() {
     let s = 
     "\\begin{a}\\begin{b}  \\begin{c} $ yeah$ \\end{c} %aiueo
     \\hello\\ \\bye
-    \\begin{d} \\end{d}\\end{b}\\end{a} ";
+    \\begin{d} \\end{d}\\end{b}\\end{a} %aa";
     let p = Document::from_str(s);
     // dbg!(&p);
     assert!(p.is_ok());

@@ -33,12 +33,7 @@ pub struct Document {
 impl fmt::Display for Document {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for word in self.words.iter() {
-            if word.is_empty_word() {
-                write!(f, "\n\n")?;
-            } else {
-                // [FIXME] may produce extra spaces
-                write!(f, "{word}")?;
-            }
+            write!(f, "{word}")?;
         }
         Ok(())
     }
@@ -145,9 +140,9 @@ impl fmt::Display for Word {
             Word::Text(s) => write!(f, "{s} "),
             Word::Command(c) => write!(f, "{c}"),
             Word::Lines(p) => write!(f, "{p}"),
-            Word::Comment(_) => Ok(()),
-            Word::Env(name, d) => write!(f, "\\BEGIN{{{name}}}\n{d}\n\\END{{{name}}}"),
-            Word::EndLine => todo!(),
+            Word::Comment(s) => write!(f, "%{}", s.0),
+            Word::Env(name, d) => write!(f, "\\BEGIN{{{name}}}{d}\\END{{{name}}}"),
+            Word::EndLine => write!(f,"↵\n"),
             Word::Dollar => write!(f, "$"),
         }
     }
@@ -165,4 +160,23 @@ impl Word {
             Word::Dollar => false,
         }
     }
+}
+
+pub fn make_upper_substitute(s: String) -> String {
+    let mut s = take_alph_and_to_upper(s);
+    if s.len() < 2 {
+        for _ in 0..2 - s.len() {
+            s.push('X');
+        }
+    } else {
+        s.truncate(2);
+    }
+    s
+}
+
+fn take_alph_and_to_upper(s: String) -> String {
+    s.chars()
+        .filter(|c| c.is_alphabetic())
+        .collect::<String>()
+        .to_uppercase()
 }

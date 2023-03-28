@@ -1,5 +1,5 @@
 // use super::command::parse_command;
-use super::*;
+use super::{command::Command, *};
 use combine::{
     attempt, between, choice, many, many1, none_of, parser, parser::char::string, satisfy,
     sep_end_by, token, unexpected_any, value, ParseError, Parser, Stream,

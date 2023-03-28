@@ -75,8 +75,9 @@ fn run_result(opts: Opts) -> Result<(Document, Option<PathBuf>)> {
             buffer
         }
     };
-    let mut paragraph = token::Document::from_str(&raw_code)
+    let mut doc = token::Document::from_str(&raw_code)
         .map_err(|err| anyhow::anyhow!("failed to parse; {}", err))?;
-    paragraph.arrange();
-    Ok((paragraph,opts.output))
+    doc.arrange();
+    // TODO
+    Ok((doc, opts.output))
 }

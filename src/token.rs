@@ -1,11 +1,11 @@
-use combine::{error::StringStreamError, stream::position, Parser};
+use combine::stream::position;
 use std::{fmt, io, str::FromStr};
 
 use self::word::parse_words;
 mod command;
-mod word;
 #[cfg(test)]
 mod test;
+mod word;
 pub use command::Command;
 
 #[derive(Debug)]
@@ -41,12 +41,11 @@ impl fmt::Display for Document {
 }
 
 impl FromStr for Document {
-    type Err = Error<StringStreamError>;
+    type Err = Error<String>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        parse_words()
-            .parse(position::Stream::new(s))
-            .map_err(Error::Parse)
+        combine::EasyParser::easy_parse(&mut parse_words(), position::Stream::new(s))
+            .map_err(|err| Error::Parse(err.to_string()))
             .map(|words| Document { words: words.0 })
     }
 }

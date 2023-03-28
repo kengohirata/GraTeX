@@ -1,6 +1,12 @@
 mod command;
+mod env;
 mod token_to_ast;
+use std::fmt;
+
 pub use command::Command;
+pub use token_to_ast::token_to_ast;
+
+use self::env::write_env;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Ast(Vec<Paragraph>);
@@ -11,6 +17,19 @@ impl Ast {
     }
     pub fn push(&mut self, paragraph: Paragraph) {
         self.0.push(paragraph);
+    }
+}
+
+impl fmt::Display for Ast {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut iter = self.0.iter().peekable();
+        while let Some(p) = iter.next() {
+            write!(f, "{p}")?;
+            if iter.peek().is_some() {
+                write!(f, "\n\n")?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -26,6 +45,19 @@ impl Paragraph {
     }
 }
 
+impl fmt::Display for Paragraph {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut iter = self.0.iter().peekable();
+        while let Some(w) = iter.next() {
+            write!(f, "{w}")?;
+            if iter.peek().is_some() {
+                write!(f, " ")?;
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Word {
     Text(String),
@@ -33,6 +65,18 @@ pub enum Word {
     MathInline(String),
     Command(command::Command),
     Lines(Ast),
+}
+
+impl fmt::Display for Word {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Word::Text(s) => write!(f, "{}", s),
+            Word::Env(env, ast) => write_env(f, env, ast),
+            Word::MathInline(s) => write!(f, "{s}"),
+            Word::Command(c) => write!(f, "{c}"),
+            Word::Lines(ast) => write!(f, "{ast}"),
+        }
+    }
 }
 
 pub fn make_upper_substitute(s: String) -> String {

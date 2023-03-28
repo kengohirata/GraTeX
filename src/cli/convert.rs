@@ -1,3 +1,5 @@
+use super::super::ast;
+
 use super::super::token::{self, Document};
 use anyhow::Result;
 use arboard::Clipboard;
@@ -34,12 +36,12 @@ pub enum InputType {
 }
 
 pub fn run(opts: Opts) -> i32 {
-    match run_result(opts) {
-        Ok((paragraph, None)) => {
-            println!("{paragraph}");
+    match (run_result(opts.input), opts.output) {
+        (Ok(ast), None) => {
+            println!("{ast}");
             0
         }
-        Ok((paragraph, Some(out_path_buf))) => {
+        (Ok(ast), Some(out_path_buf)) => {
             let out_path = out_path_buf.as_path();
             match std::fs::File::options()
                 .create(true)
@@ -47,7 +49,7 @@ pub fn run(opts: Opts) -> i32 {
                 .open(out_path)
             {
                 Ok(mut file) => {
-                    write!(file, "{paragraph}").expect("failed to write;");
+                    write!(file, "{ast}").expect("failed to write;");
                     0
                 }
                 Err(e) => {
@@ -56,15 +58,15 @@ pub fn run(opts: Opts) -> i32 {
                 }
             }
         }
-        Err(err) => {
+        (Err(err), _) => {
             eprintln!("failed to convert; {err}");
             1
         }
     }
 }
 
-fn run_result(opts: Opts) -> Result<(Document, Option<PathBuf>)> {
-    let raw_code = match opts.input {
+fn run_result(opts: InputType) -> Result<ast::Ast> {
+    let raw_code = match opts {
         InputType::File { path } => read_to_string(&path)
             .map_err(|err| anyhow::anyhow!("failed to load {}; {}", path.to_string_lossy(), err))?,
         InputType::Raw { text } => text,
@@ -75,9 +77,8 @@ fn run_result(opts: Opts) -> Result<(Document, Option<PathBuf>)> {
             buffer
         }
     };
-    let mut doc = token::Document::from_str(&raw_code)
+    let token = token::Document::from_str(&raw_code)
         .map_err(|err| anyhow::anyhow!("failed to parse; {}", err))?;
-    doc.arrange();
-    // TODO
-    Ok((doc, opts.output))
+    let ast = ast::token_to_ast(token);
+    Ok(ast)
 }

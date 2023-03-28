@@ -11,25 +11,10 @@ parser! {
         Input: Stream<Token = char>,
         Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
     ]{
-    // sep_by(parse_line(), newline())
-    //     .map(|data: Vec<Vec<Word>>| data.into_iter().flatten().collect::<Vec<Word>>())
-    parse_pure_spaces()
-        .with(sep_end_by(parse_word(), parse_pure_spaces()))
+        parse_pure_spaces()
+            .with(sep_end_by(parse_word(), parse_pure_spaces()))
+    }
 }
-}
-
-// pub fn parse_line<Input>() -> impl Parser<Input, Output = Vec<Word>>
-// where
-//     Input: Stream<Token = char>,
-//     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
-// {
-//     parse_pure_spaces()
-//         .with(sep_end_by(parse_word(), parse_pure_spaces()))
-//         .map(|mut words: Vec<Word>| {
-//             words.push(Word::EndLine);
-//             words
-//         })
-// }
 
 pub fn parse_word<Input>() -> impl Parser<Input, Output = Word>
 where

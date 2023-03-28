@@ -1,4 +1,3 @@
-use combine::error::StringStreamError;
 use std::fmt;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -14,7 +13,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub const KEYWORDS: [&str; 13] = [
+    pub const KEYWORDS: [&str; 17] = [
         "section",
         "subsection",
         "label",
@@ -27,6 +26,10 @@ impl Command {
         "textrm",
         "textbf",
         "textit",
+        "quad",
+        "qquad",
+        ",",
+        "!",
         " ",
     ];
 
@@ -42,7 +45,7 @@ impl Command {
 }
 
 impl std::str::FromStr for Command {
-    type Err = StringStreamError;
+    type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use Command::*;
         let ok = match s {
@@ -54,8 +57,8 @@ impl std::str::FromStr for Command {
             "emph" => Font,
             c if c.strip_prefix("text").is_some() => Font,
             "item" => Item,
-            " " => Space,
-            _ => return Err(StringStreamError::UnexpectedParse),
+            "quad" | "qquad" | "," | "!" | " " => Space,
+            _ => return Err(format!("Compiler BUG: Unknown command name found: {s}")),
         };
         Ok(ok)
     }

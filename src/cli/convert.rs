@@ -1,4 +1,5 @@
 use crate::arrange;
+use crate::preprocess::preprocess;
 
 use super::super::ast;
 
@@ -68,7 +69,7 @@ pub fn run(opts: Opts) -> i32 {
 }
 
 fn run_result(opts: InputType) -> Result<String> {
-    let raw_code = match opts {
+    let mut raw_code = match opts {
         InputType::File { path } => read_to_string(&path)
             .map_err(|err| anyhow::anyhow!("failed to load {}; {}", path.to_string_lossy(), err))?,
         InputType::Raw { text } => text,
@@ -79,6 +80,7 @@ fn run_result(opts: InputType) -> Result<String> {
             buffer
         }
     };
+    preprocess(&mut raw_code);
     let token = token::Document::from_str(&raw_code)
         .map_err(|err| anyhow::anyhow!("failed to parse; {}", err))?;
     let ast = ast::token_to_ast(token);

@@ -1,6 +1,8 @@
+use crate::arrange;
+
 use super::super::ast;
 
-use super::super::token::{self, Document};
+use super::super::token;
 use anyhow::Result;
 use arboard::Clipboard;
 use std::fs::read_to_string;
@@ -65,7 +67,7 @@ pub fn run(opts: Opts) -> i32 {
     }
 }
 
-fn run_result(opts: InputType) -> Result<ast::Ast> {
+fn run_result(opts: InputType) -> Result<String> {
     let raw_code = match opts {
         InputType::File { path } => read_to_string(&path)
             .map_err(|err| anyhow::anyhow!("failed to load {}; {}", path.to_string_lossy(), err))?,
@@ -80,5 +82,8 @@ fn run_result(opts: InputType) -> Result<ast::Ast> {
     let token = token::Document::from_str(&raw_code)
         .map_err(|err| anyhow::anyhow!("failed to parse; {}", err))?;
     let ast = ast::token_to_ast(token);
-    Ok(ast)
+
+    let mut ast_str = format!("{ast}");
+    arrange::arrange_text_string(&mut ast_str);
+    Ok(ast_str)
 }

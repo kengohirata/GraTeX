@@ -106,7 +106,8 @@ pub fn token_to_ast(doc: token::Document) -> ast::Ast {
 fn test_doc_to_ast() {
     use std::str::FromStr;
     // let s = "Hello\n$ hi $ World!\n{I am}\n{super \n\n man}\\ref[]{cor:21}";
-    let s = "a \\emph{b} c";
+    // let s = "a \\emph{b} c";
+    let s = "{} a";
     let doc = token::Document::from_str(s).unwrap();
     println!("{}", doc);
     let ast = token_to_ast(doc);

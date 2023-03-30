@@ -4,5 +4,4 @@ pub fn preprocess(s: &mut String) {
             *s = s[start + 16..end].to_string();
         }
     }
-    println!("{s}")
 }

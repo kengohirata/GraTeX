@@ -1,11 +1,6 @@
 use regex::Regex;
 
 pub fn arrange_text_string(s: &mut String) {
-    // delete `\@`, `\'`, `\\
-    *s = s.replace("\\@", "");
-    *s = s.replace("\\\'", "");
-    *s = s.replace("\\\\", "");
-
     // many spaces => single space
     let re = Regex::new(r"[ \t]+").unwrap();
     *s = re.replace_all(s, " ").to_string();
@@ -18,6 +13,10 @@ pub fn arrange_text_string(s: &mut String) {
     *s = re.replace_all(s, "\n\n").to_string();
     
     // delete spaces before `,` and ` .`
-    *s = s.replace(" ,", "");
-    *s = s.replace(" .", "");
+    *s = s.replace(" ,", ",");
+    *s = s.replace(" .",  ".");
+
+    // delete space before and after `'` and `"`
+    let re = Regex::new(" ?[',\"] ?").unwrap();
+    *s = re.replace_all(s, "").to_string();
 }

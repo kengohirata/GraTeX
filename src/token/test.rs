@@ -24,13 +24,18 @@ fn test_paragraph_from_str() {
     // }
 }
 
-// #[test]
-// fn test_math_display() {
-//     let result = parse_m().parse("[a\\a\\]");
-//     print!("{:?}", result);
-//     let math = Word::MathDisplay;
-//     assert_eq!(result, Ok((math, "")))
-// }
+#[test]
+fn test_debug() {
+    let s = 
+    "Schr\"{o}dinger";
+    let p = Document::from_str(s);
+    // dbg!(&p);
+    assert!(p.is_ok());
+    match p {
+        Ok(p) => println!("{p}"),
+        Err(_) => unreachable!(),
+    }
+}
 
 // #[test]
 // fn test_text() {

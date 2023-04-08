@@ -40,11 +40,11 @@ pub enum InputType {
 
 pub fn run(opts: Opts) -> i32 {
     match (run_result(opts.input), opts.output) {
-        (Ok(ast), None) => {
-            println!("{ast}");
+        (Ok(s), None) => {
+            println!("{s}");
             0
         }
-        (Ok(ast), Some(out_path_buf)) => {
+        (Ok(s), Some(out_path_buf)) => {
             let out_path = out_path_buf.as_path();
             match std::fs::File::options()
                 .create(true)
@@ -52,7 +52,7 @@ pub fn run(opts: Opts) -> i32 {
                 .open(out_path)
             {
                 Ok(mut file) => {
-                    write!(file, "{ast}").expect("failed to write;");
+                    write!(file, "{s}").expect("failed to write;");
                     0
                 }
                 Err(e) => {

@@ -13,7 +13,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub const KEYWORDS: [&str; 18] = [
+    pub const KEYWORDS: [&str; 19] = [
         "section",
         "subsection",
         "label",
@@ -30,6 +30,7 @@ impl Command {
         "qquad",
         ",",
         "!",
+        "@",
         " ",
         "par",
     ];
@@ -58,7 +59,7 @@ impl std::str::FromStr for Command {
             "emph" => Font,
             c if c.strip_prefix("text").is_some() => Font,
             "item" => Item,
-            "quad" | "qquad" | "," | "!" | " " | "par" => Space,
+            "quad" | "qquad" | "," | "!" | " " | "par" | "@" => Space,
             _ => return Err(format!("Compiler BUG: Unknown command name found: {s}")),
         };
         Ok(ok)

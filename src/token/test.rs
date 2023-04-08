@@ -27,9 +27,10 @@ fn test_paragraph_from_str() {
 #[test]
 fn test_debug() {
     let s = 
-    "Schr\"{o}dinger";
+    r"\arr[r]
+    I am a Ph\@. D\@. student";
     let p = Document::from_str(s);
-    // dbg!(&p);
+    dbg!(&p);
     assert!(p.is_ok());
     match p {
         Ok(p) => println!("{p}"),

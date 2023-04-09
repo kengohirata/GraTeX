@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::{make_upper_substitute, token_to_ast::token_to_ast};
+use super::{make_upper_substitute, token_to_ast::token_to_ast, Paragraph};
 use crate::token;
 
 use super::{Ast, Word};
@@ -44,7 +44,16 @@ pub(super) fn token_to_ast_command(
             Word::Command(Command::Item)
         }
         token::Command::Space => return None,
-        token::Command::Unknown(s) => Word::Text(s),
+        token::Command::Unknown(s) => {
+            let mut ps = Paragraph::new();
+            ps.push(Word::Text(s));
+            for arg in args {
+                ps.push(Word::Lines(token_to_ast(arg)));
+            }
+            Word::Lines(Ast(vec![ps]))
+        }
+        // TODO: handle symbols
+        token::Command::Symbol(_) => return None,
     };
     Some(w)
 }

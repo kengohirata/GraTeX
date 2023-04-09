@@ -37,6 +37,21 @@ fn test_debug() {
         Err(_) => unreachable!(),
     }
 }
+#[test]
+fn test_debug2() {
+    let s = 
+    r"\textbf{a}
+    \\\ \+\[
+        yeah
+    \]";
+    let p = Document::from_str(s);
+    dbg!(&p);
+    assert!(p.is_ok());
+    match p {
+        Ok(p) => println!("{p}"),
+        Err(_) => unreachable!(),
+    }
+}
 
 // #[test]
 // fn test_text() {

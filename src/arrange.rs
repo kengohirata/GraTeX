@@ -12,11 +12,18 @@ pub fn arrange_text_string(s: &mut String) {
     let re = Regex::new(r"\n\n\n+").unwrap();
     *s = re.replace_all(s, "\n\n").to_string();
     
-    // delete spaces before `,` and ` .`
+    // delete spaces before
+    // `,`
+    // `.`
+    // `]`
     *s = s.replace(" ,", ",");
     *s = s.replace(" .",  ".");
+    *s = s.replace(" ]",  "]");
+
+    // delete spaces after '['
+    *s = s.replace("[ ",  "[");
 
     // delete space before and after `'` and `"`
-    let re = Regex::new(" ?[',\"] ?").unwrap();
+    let re = Regex::new(" ?['\"] ?").unwrap();
     *s = re.replace_all(s, "").to_string();
 }

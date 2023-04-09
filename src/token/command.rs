@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Command {
     Section(u8),
     Label,
@@ -10,10 +10,11 @@ pub enum Command {
     Item,
     Space,
     Unknown(String),
+    Symbol(char),
 }
 
 impl Command {
-    pub const KEYWORDS: [&str; 19] = [
+    pub const KEYWORDS: [&str; 15] = [
         "section",
         "subsection",
         "label",
@@ -28,10 +29,10 @@ impl Command {
         "textit",
         "quad",
         "qquad",
-        ",",
-        "!",
-        "@",
-        " ",
+        // ",",
+        // "!",
+        // "@",
+        // " ",
         "par",
     ];
 
@@ -39,7 +40,7 @@ impl Command {
         use Command::*;
         let n = match self {
             Section(_) | Label | Cite | Ref | Font => 1,
-            Item | Space => 0,
+            Item | Space | Symbol(_) => 0,
             Unknown(_) => return None,
         };
         Some(n)
@@ -59,7 +60,7 @@ impl std::str::FromStr for Command {
             "emph" => Font,
             c if c.strip_prefix("text").is_some() => Font,
             "item" => Item,
-            "quad" | "qquad" | "," | "!" | " " | "par" | "@" => Space,
+            "quad" | "qquad" | "par" => Space,
             _ => return Err(format!("Compiler BUG: Unknown command name found: {s}")),
         };
         Ok(ok)
@@ -75,13 +76,14 @@ impl fmt::Display for Command {
                 }
                 Ok(())
             }
-            Command::Label => write!(f, "\\LABEL"),
-            Command::Cite => write!(f, "\\CITE"),
-            Command::Ref => write!(f, "\\REF"),
-            Command::Font => write!(f, "\\FONT"),
-            Command::Item => write!(f, "\\ITEM"),
+            Command::Label => write!(f, r"\LABEL"),
+            Command::Cite => write!(f, r"\CITE"),
+            Command::Ref => write!(f, r"\REF"),
+            Command::Font => write!(f, r"\FONT"),
+            Command::Item => write!(f, r"\ITEM"),
             Command::Space => write!(f, ""),
-            Command::Unknown(s) => write!(f, "\\{}", s.to_uppercase()),
+            Command::Unknown(s) => write!(f, r"\{}", s.to_uppercase()),
+            Command::Symbol(c) => write!(f, r"\{c}"),
         }
     }
 }

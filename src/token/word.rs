@@ -1,8 +1,9 @@
 // use super::command::parse_command;
 use super::{command::Command, *};
 use combine::{
-    attempt, between, choice, many, many1, none_of, parser, parser::char::string, satisfy,
-    sep_end_by, token, unexpected_any, value, ParseError, Parser, Stream,
+    attempt, between, choice, many, many1, none_of, parser,
+    parser::char::{letter, string},
+    satisfy, sep_end_by, token, unexpected_any, value, ParseError, Parser, Stream,
 };
 
 parser! {
@@ -93,28 +94,17 @@ where
     Input: Stream<Token = char>,
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
-    attempt(
-        token('\\').with(choice((
-            attempt(
-                choice(Command::KEYWORDS.map(|s| attempt(string(s)))).map(|s| {
-                    match Command::from_str(s) {
-                        Ok(c) => c,
-                        Err(e) => panic!("Error: {}", e),
-                    }
-                }),
-            ),
-            many(none_of(
-                ['$', '\t', '\n', ' ', '{', '}', '%', '\\'].iter().cloned(),
-            ))
-            .then(|s: String| match &s as &str {
-                "begin" => unexpected_any("begin").right(),
-                "end" => unexpected_any("end").right(),
-                "[" => unexpected_any("[").right(),
-                "]" => unexpected_any("]").right(),
-                _ => value(s).map(Command::Unknown).left(),
-            }),
-        ))),
-    )
+    attempt(token('\\').with(choice((
+        many1(letter()).then(|s: String| match &s as &str {
+            "begin" => unexpected_any("begin").right(),
+            "end" => unexpected_any("end").right(),
+            _ => value(s).map(|s| match Command::from_str(&s) {
+                Ok(c) => c,
+                Err(_) => Command::Unknown(s),
+            }).left(),
+        }),
+        none_of(['[', ']'].iter().cloned()).map(Command::Symbol),
+    ))))
 }
 
 fn parse_text<Input>() -> impl Parser<Input, Output = Word>

@@ -26,4 +26,8 @@ pub fn arrange_text_string(s: &mut String) {
     // delete space before and after `'` and `"`
     let re = Regex::new(" ?['\"] ?").unwrap();
     *s = re.replace_all(s, "").to_string();
+
+    // replace `` with "
+    *s = s.replace("``",  "\"");
+    *s = s.replace("''",  "\"");
 }

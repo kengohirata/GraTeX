@@ -72,7 +72,7 @@ impl fmt::Display for Word {
             Word::Lines(p) => write!(f, "{p}"),
             Word::Comment(s) => write!(f, "%{}", s.0),
             Word::Env(name, d) => write!(f, "\\BEGIN{{{name}}}{d}\\END{{{name}}}"),
-            Word::EndLine => write!(f, "↵\n"),
+            Word::EndLine => writeln!(f, "↵"),
             Word::Dollar => write!(f, "$"),
         }
     }

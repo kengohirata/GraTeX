@@ -53,7 +53,7 @@ jobs:
       - name: Compress release files
         run: |
           zip --junk-paths gratex-${{ matrix.target }} target/${{ matrix.target }}/release/gratex{,.exe}
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.target }}
           path: gratex-${{ matrix.target }}.zip
@@ -76,7 +76,7 @@ jobs:
           prerelease: true
       - run: |
           echo '${{ steps.create-release.outputs.upload_url }}' > release_upload_url.txt
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v4
         with:
           name: create-release
           path: release_upload_url.txt

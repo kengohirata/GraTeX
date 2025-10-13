@@ -1,3 +1,11 @@
 /target
 Cargo.lock
 .history
+.DS_Store
+
+*.pdf
+*.log
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz

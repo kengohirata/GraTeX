@@ -1,0 +1,7 @@
+
+
+% ---------- \begin: figure ----------
+centering includegraphics image.png caption A sample figure
+% ---------- \end: figure ----------
+
+Figure~ Theorem 7 shows the sample image.

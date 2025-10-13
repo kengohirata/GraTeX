@@ -8,6 +8,12 @@ name = "gratex"
 test = false
 bench = false
 
+[[bin]]
+name = "update-fixtures"
+path = "src/bin/update_fixtures.rs"
+test = false
+bench = false
+
 [dependencies]
 log = "0.4"
 fern = "0.5"

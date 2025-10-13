@@ -24,9 +24,18 @@ fn assert_fixture_conversion(test_case: &str) {
 }
 
 #[rstest]
-#[case("test_math")]
-#[case("test_inline_math")]
+#[case("test_citation")]
+#[case("test_comments")]
+#[case("test_display_dollar")]
+#[case("test_enumerate")]
 #[case("test_environment")]
+#[case("test_figure")]
+#[case("test_footnote")]
+#[case("test_inline_math")]
+#[case("test_math")]
+#[case("test_paragraphs")]
+#[case("test_table")]
+#[case("test_unknown_command")]
 fn converts_fixture(#[case] test_case: &str) {
     assert_fixture_conversion(test_case);
 }

@@ -1,5 +1,5 @@
+//! Main entry point for the GraTeX application.
 use gratex::cli;
-///
 use log::Level;
 use structopt::StructOpt;
 use structopt_flags::LogLevel;

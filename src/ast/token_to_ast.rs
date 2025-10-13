@@ -96,7 +96,7 @@ pub fn token_to_ast(doc: token::Document) -> ast::Ast {
             }
         }
     }
-    if paragraph.0.len() > 0 {
+    if !paragraph.0.is_empty() {
         ast.push(paragraph);
     }
     ast

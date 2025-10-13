@@ -1,0 +1,366 @@
+#!/usr/bin/env python3
+"""Launch a lightweight local editor page in Chrome so Grammarly can assist."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import pathlib
+import shutil
+import signal
+import socketserver
+import subprocess
+import sys
+import threading
+import time
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Callable
+
+
+HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Editing {display_name}</title>
+  <style>
+    :root {{
+      color-scheme: light dark;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }}
+    body {{
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: #101418;
+      color: #e2e8f0;
+    }}
+    header {{
+      padding: 1rem 1.5rem;
+      background: #1f2933;
+      border-bottom: 1px solid #374151;
+      font-weight: 600;
+    }}
+    main {{
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      gap: 0.75rem;
+    }}
+    textarea {{
+      flex: 1;
+      width: 100%;
+      resize: both;
+      min-height: 300px;
+      border-radius: 0.5rem;
+      border: 1px solid #374151;
+      padding: 1rem;
+      font: 16px/1.6 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      background: #0b1015;
+      color: inherit;
+      box-sizing: border-box;
+      outline: none;
+    }}
+    textarea:focus {{
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+    }}
+    .toolbar {{
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }}
+    button {{
+      font: inherit;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #2563eb;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }}
+    button:disabled {{
+      opacity: 0.6;
+      cursor: wait;
+    }}
+    .status {{
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }}
+  </style>
+</head>
+<body>
+  <header>Editing {display_name} — Grammarly should attach automatically</header>
+  <main>
+    <textarea id="editor" spellcheck="true"></textarea>
+    <div class="toolbar">
+      <button id="save">Save (Cmd/Ctrl + S)</button>
+      <span class="status" id="status"></span>
+    </div>
+  </main>
+  <script>
+    const editor = document.getElementById("editor");
+    const saveButton = document.getElementById("save");
+    const statusEl = document.getElementById("status");
+
+    async function loadContent() {{
+      try {{
+        const res = await fetch("/api/content");
+        if (!res.ok) throw new Error("Failed to load file");
+        const data = await res.json();
+        editor.value = data.content;
+        setStatus("Loaded");
+      }} catch (err) {{
+        console.error(err);
+        setStatus("Failed to load file");
+      }}
+    }}
+
+    function setStatus(message) {{
+      const now = new Date();
+      statusEl.textContent = `${{message}} – ${{now.toLocaleTimeString()}}`;
+    }}
+
+    async function saveContent() {{
+      saveButton.disabled = true;
+      setStatus("Saving…");
+      try {{
+        const res = await fetch("/api/save", {{
+          method: "POST",
+          headers: {{ "Content-Type": "application/json" }},
+          body: JSON.stringify({{ content: editor.value }}),
+        }});
+        if (!res.ok) throw new Error(await res.text());
+        setStatus("Saved");
+      }} catch (err) {{
+        console.error(err);
+        setStatus("Save failed");
+        alert("Save failed: " + err.message);
+      }} finally {{
+        saveButton.disabled = false;
+      }}
+    }}
+
+    saveButton.addEventListener("click", (event) => {{
+      event.preventDefault();
+      saveContent();
+    }});
+
+    window.addEventListener("keydown", (event) => {{
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {{
+        event.preventDefault();
+        saveContent();
+      }}
+    }});
+
+    loadContent();
+  </script>
+</body>
+</html>
+"""
+
+
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+
+def build_handler(file_path: pathlib.Path, encoding: str) -> Callable[..., BaseHTTPRequestHandler]:
+    class EditorHandler(BaseHTTPRequestHandler):
+        server_version = "OpenChromeToEdit/1.0"
+
+        def _set_common_headers(self, status: HTTPStatus, content_type: str) -> None:
+            self.send_response(status)
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+            self.send_header("Content-Type", content_type)
+            self.end_headers()
+
+        def do_GET(self) -> None:  # noqa: N802
+            if self.path == "/" or self.path.startswith("/?"):
+                html = HTML_TEMPLATE.format(display_name=file_path.name)
+                self._set_common_headers(HTTPStatus.OK, "text/html; charset=utf-8")
+                self.wfile.write(html.encode("utf-8"))
+                return
+
+            if self.path.startswith("/api/content"):
+                try:
+                    text = file_path.read_text(encoding=encoding)
+                except UnicodeDecodeError:
+                    message = json.dumps({"error": "Failed to decode file with encoding {}".format(encoding)})
+                    self._set_common_headers(HTTPStatus.INTERNAL_SERVER_ERROR, "application/json")
+                    self.wfile.write(message.encode("utf-8"))
+                    return
+
+                payload = json.dumps(
+                    {
+                        "content": text,
+                        "filename": file_path.name,
+                        "mtime": file_path.stat().st_mtime,
+                    }
+                )
+                self._set_common_headers(HTTPStatus.OK, "application/json")
+                self.wfile.write(payload.encode("utf-8"))
+                return
+
+            self.send_error(HTTPStatus.NOT_FOUND)
+
+        def do_POST(self) -> None:  # noqa: N802
+            if self.path != "/api/save":
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+
+            length_header = self.headers.get("Content-Length") or "0"
+            try:
+                content_length = int(length_header)
+            except ValueError:
+                self.send_error(HTTPStatus.BAD_REQUEST, "Invalid Content-Length header")
+                return
+
+            raw_body = self.rfile.read(content_length)
+            try:
+                payload = json.loads(raw_body)
+            except json.JSONDecodeError:
+                self.send_error(HTTPStatus.BAD_REQUEST, "Invalid JSON payload")
+                return
+
+            if not isinstance(payload, dict) or "content" not in payload:
+                self.send_error(HTTPStatus.BAD_REQUEST, "Payload must contain a 'content' field")
+                return
+
+            content = payload["content"]
+            if not isinstance(content, str):
+                self.send_error(HTTPStatus.BAD_REQUEST, "'content' must be a string")
+                return
+
+            try:
+                file_path.write_text(content, encoding=encoding)
+            except UnicodeEncodeError:
+                self.send_error(
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to save file with encoding {}".format(encoding),
+                )
+                return
+
+            self._set_common_headers(HTTPStatus.NO_CONTENT, "text/plain; charset=utf-8")
+
+        def log_message(self, format: str, *args) -> None:
+            # Suppress default request logging to keep CLI output clean.
+            if os.environ.get("OPEN_CHROME_TO_EDIT_DEBUG"):
+                super().log_message(format, *args)
+
+    return EditorHandler
+
+
+def open_in_chrome(url: str) -> bool:
+    if sys.platform == "darwin":
+        cmd = ["open", "-a", "Google Chrome", url]
+        return subprocess.call(cmd) == 0
+
+    browser_candidates = [
+        "google-chrome",
+        "chrome",
+        "chromium",
+        "chromium-browser",
+        "msedge",
+    ]
+    for candidate in browser_candidates:
+        executable = shutil.which(candidate)
+        if executable:
+            try:
+                subprocess.Popen([executable, url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return True
+            except Exception:
+                continue
+
+    try:
+        import webbrowser
+
+        webbrowser.open(url, new=1)
+        return True
+    except Exception:
+        return False
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Open a Chrome-backed editor page bound to a local text file so Grammarly can assist your edits."
+        )
+    )
+    parser.add_argument(
+        "path",
+        help="Path to the text file you would like to edit in Chrome.",
+    )
+    parser.add_argument(
+        "--encoding",
+        default="utf-8",
+        help="File encoding (default: utf-8).",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv or sys.argv[1:])
+
+    target_path = pathlib.Path(args.path).expanduser()
+    if target_path.exists() and target_path.is_dir():
+        print(f"Refusing to edit directory: {target_path}", file=sys.stderr)
+        return 1
+
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    if not target_path.exists():
+        target_path.touch()
+
+    try:
+        target_path.resolve(strict=True)
+    except FileNotFoundError:
+        # Should be rare, but handle cases where resolve fails due to symlink targets.
+        pass
+
+    handler = build_handler(target_path, args.encoding)
+    server = ThreadedHTTPServer(("127.0.0.1", 0), handler)
+    port = server.server_port
+    url = f"http://127.0.0.1:{port}/"
+
+    def serve() -> None:
+        with server:
+            server.serve_forever()
+
+    thread = threading.Thread(target=serve, daemon=True)
+    thread.start()
+
+    print(f"Serving {target_path} at {url}")
+    print("Opening Chrome… If it does not open automatically, paste the URL into your browser manually.")
+    launched = open_in_chrome(url)
+    if not launched:
+        print("Could not auto-launch Chrome. Please open the URL above manually.", file=sys.stderr)
+
+    def shutdown(signum: int, _frame) -> None:
+        print("\nReceived signal, shutting down server...")
+        server.shutdown()
+
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+
+    try:
+        while thread.is_alive():
+            time.sleep(0.2)
+    except KeyboardInterrupt:
+        shutdown(signal.SIGINT, None)
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+

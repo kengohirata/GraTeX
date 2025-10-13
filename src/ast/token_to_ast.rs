@@ -72,6 +72,19 @@ pub fn token_to_ast(doc: token::Document) -> ast::Ast {
                 }
             }
             token::Word::Comment(_) => continue,
+            token::Word::InlineMath(d) => {
+                let s = d
+                    .words
+                    .into_iter()
+                    .map(|word| format!("{word}"))
+                    .collect::<String>();
+                // while let Some(word) = words.next() {
+                //     s += &format!("{word}");
+                // }
+                paragraph
+                    .0
+                    .push(ast::Word::MathInline(ast::make_upper_substitute(s)))
+            }
             token::Word::Env(s, d) => {
                 paragraph.0.push(ast::Word::Env(s, token_to_ast(d)));
             }

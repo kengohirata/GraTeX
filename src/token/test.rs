@@ -1,9 +1,10 @@
 use super::*;
+use crate::token::word::parse_math_inline_parenthesis;
+use combine::EasyParser;
 
 #[test]
 fn test_paragraph_from_str() {
-    let s = 
-    "\\begin{a}\\begin{b}  \\begin{c} $ yeah$ \\end{c} %aiueo
+    let s = "\\begin{a}\\begin{b}  \\begin{c} $ yeah$ \\end{c} %aiueo
     \\hello\\ \\bye
     \\begin{d} \\end{d}\\end{b}\\end{a} %aa";
     let p = Document::from_str(s);
@@ -26,8 +27,7 @@ fn test_paragraph_from_str() {
 
 #[test]
 fn test_debug() {
-    let s = 
-    r"\arr[r]
+    let s = r"\arr[r]
     I am a Ph\@. D\@. student";
     let p = Document::from_str(s);
     dbg!(&p);
@@ -39,8 +39,7 @@ fn test_debug() {
 }
 #[test]
 fn test_debug2() {
-    let s = 
-    r"\textbf{a}
+    let s = r"\textbf{a}
     \\\ \+\[
         yeah
     \]";
@@ -51,6 +50,21 @@ fn test_debug2() {
         Ok(p) => println!("{p}"),
         Err(_) => unreachable!(),
     }
+}
+
+#[test]
+fn parses_parenthesized_inline_math() {
+    let s = r"\( a \)";
+    let p = Document::from_str(s);
+    dbg!(&p);
+    assert!(p.is_ok());
+}
+
+#[test]
+fn parse_math_inline_paren_parser() {
+    let result = parse_math_inline_parenthesis().easy_parse(r"\( aa \) ");
+    dbg!(&result);
+    assert!(result.is_ok());
 }
 
 // #[test]

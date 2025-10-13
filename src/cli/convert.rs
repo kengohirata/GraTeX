@@ -39,7 +39,7 @@ pub enum InputType {
 }
 
 pub fn run(opts: Opts) -> i32 {
-    match (run_result(opts.input), opts.output) {
+    match (convert_input(opts.input), opts.output) {
         (Ok(s), None) => {
             println!("{s}");
             0
@@ -68,8 +68,8 @@ pub fn run(opts: Opts) -> i32 {
     }
 }
 
-fn run_result(opts: InputType) -> Result<String> {
-    let mut raw_code = match opts {
+pub fn convert_input(input: InputType) -> Result<String> {
+    let mut raw_code = match input {
         InputType::File { path } => read_to_string(&path)
             .map_err(|err| anyhow::anyhow!("failed to load {}; {}", path.to_string_lossy(), err))?,
         InputType::Raw { text } => text,

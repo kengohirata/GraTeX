@@ -1,7 +1,7 @@
 #![allow(clippy::new_without_default)]
 
-pub mod preprocess;
-mod token;
+pub mod arrange;
 pub mod ast;
 pub mod cli;
-pub mod arrange;
+pub mod preprocess;
+mod token;

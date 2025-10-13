@@ -26,6 +26,7 @@ where
         parse_env(),
         between(token('{'), token('}'), parse_words()).map(|words| Word::Lines(Document { words })),
         parse_math_display(),
+        parse_math_inline_parenthesis(),
         parse_math_inline(),
         parse_comments().map(Word::Comment),
         parse_command().map(Word::Command),
@@ -71,6 +72,19 @@ where
     .map(|words: Vec<Word>| Word::Env("equation".to_string(), Document { words }))
 }
 
+pub fn parse_math_inline_parenthesis<Input>() -> impl Parser<Input, Output = Word>
+where
+    Input: Stream<Token = char>,
+    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+{
+    between(
+        attempt(string("\\(")),
+        attempt(string("\\)")),
+        parse_words(),
+    )
+    .map(|words: Vec<Word>| Word::InlineMath(Document { words }))
+}
+
 pub fn parse_math_inline<Input>() -> impl Parser<Input, Output = Word>
 where
     Input: Stream<Token = char>,
@@ -95,15 +109,19 @@ where
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
     attempt(token('\\').with(choice((
-        many1(letter()).then(|s: String| match &s as &str {
-            "begin" => unexpected_any("begin").right(),
-            "end" => unexpected_any("end").right(),
-            _ => value(s).map(|s| match Command::from_str(&s) {
-                Ok(c) => c,
-                Err(_) => Command::Unknown(s),
-            }).left(),
+        many1(letter()).then(|s: String| {
+            match &s as &str {
+                "begin" => unexpected_any("begin").right(),
+                "end" => unexpected_any("end").right(),
+                _ => value(s)
+                    .map(|s| match Command::from_str(&s) {
+                        Ok(c) => c,
+                        Err(_) => Command::Unknown(s),
+                    })
+                    .left(),
+            }
         }),
-        none_of(['[', ']'].iter().cloned()).map(Command::Symbol),
+        none_of(['[', ']', '(', ')'].iter().cloned()).map(Command::Symbol),
     ))))
 }
 

@@ -1,7 +1,7 @@
 
 
-% ---------- \begin: figure ----------
+% ========== \begin: figure ==========
 centering includegraphics image.png caption A sample figure
-% ---------- \end: figure ----------
+% ========== \end: figure ==========
 
-Figure~ Theorem 7 shows the sample image.
+Figure Theorem 7 shows the sample image.

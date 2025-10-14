@@ -4,8 +4,8 @@
 
 Plain text between math environments.
 
-% ---------- \begin: theorem ----------
+% ========== \begin: theorem ==========
 Energy equals mass times c squared.
-% ---------- \end: theorem ----------
+% ========== \end: theorem ==========
 
 See Theorem 7 for details.

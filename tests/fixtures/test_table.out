@@ -1,9 +1,9 @@
 
 
-% ---------- \begin: table ----------
+% ========== \begin: table ==========
 centering 
-% ---------- \begin: tabular ----------
+% ========== \begin: tabular ==========
 cc A & B 1 & 2
-% ---------- \end: tabular ----------
+% ========== \end: tabular ==========
 caption A simple table
-% ---------- \end: table ----------
+% ========== \end: table ==========

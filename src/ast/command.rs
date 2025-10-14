@@ -72,7 +72,7 @@ impl fmt::Display for Command {
                 write!(f, "[{s}]")
             }
             Command::Ref(s) => write!(f, "{s}"),
-            Command::Item => write!(f, "\n  - "),
+            Command::Item => write!(f, "\n  * "),
         }
     }
 }
